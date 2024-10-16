@@ -52,105 +52,145 @@ int checkIngredients(int beans_needed, int water_needed, int milk_needed, int sy
 }
 
 // Function to display the menu for purchasing items
+
 void displayPurchaseMenu() {
     printf("\nItems available for purchase:\n");
-    printf("1. %s (%.2f)\n", cappuccino, coffee_price_A);
-    printf("2. %s (%.2f)\n", mocha, coffee_price_B);
-    printf("3. %s (%.2f)\n", espresso, coffee_price_C);
+
+    // Check for each coffee type and display with availability status
+    printf("1. %s (%.2f) ", cappuccino, coffee_price_A);
+    if (checkIngredients(8, 30, 70, 0)) {
+        printf("\n");
+    } else {
+        printf(" - Unavailable due to temporarily insufficient ingredients\n");
+    }
+
+    printf("2. %s (%.2f) ", mocha, coffee_price_B);
+    if (checkIngredients(8, 39, 160, 30)) {
+        printf("\n");
+    } else {
+        printf(" - Unavailable due to temporarily insufficient ingredients\n");
+    }
+
+    printf("3. %s (%.2f) ", espresso, coffee_price_C);
+    if (checkIngredients(8, 30, 0, 0)) {
+        printf("\n");
+    } else {
+        printf(" - Unavailable due to temporarily insufficient ingredients\n");
+    }
+    
     printf("0. Cancel\n");
 }
 
+
 // Function to purchase an item
 void purchaseItem() {
-    displayPurchaseMenu();
+    while (1) {
+        displayPurchaseMenu();
 
-    int choice;
-    printf("Enter your choice: ");
-    scanf("%d", &choice);
+        int choice;
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
 
-    float selected_price = 0.0f;
-    char selected_name[20];
-    int beans_needed = 8, water_needed = 0, milk_needed = 0, syrup_needed = 0;
+        float selected_price = 0.0f;
+        char selected_name[20];
+        int beans_needed = 0, water_needed = 0, milk_needed = 0, syrup_needed = 0;
 
-    switch (choice) {
-    case 1:
-        selected_price = coffee_price_A;
-        for (int i = 0; i < 20; i++) {
-            selected_name[i] = cappuccino[i];
+        // Set ingredient requirements based on the choice
+        switch (choice) {
+            case 1:
+                selected_price = coffee_price_A;
+                strcpy(selected_name, cappuccino);
+                beans_needed = 8;
+                water_needed = 30;
+                milk_needed = 70;
+                syrup_needed = 0;
+                break;
+            case 2:
+                selected_price = coffee_price_B;
+                strcpy(selected_name, mocha);
+                beans_needed = 8;
+                water_needed = 39;
+                milk_needed = 160;
+                syrup_needed = 30;
+                break;
+            case 3:
+                selected_price = coffee_price_C;
+                strcpy(selected_name, espresso);
+                beans_needed = 8;
+                water_needed = 30;
+                milk_needed = 0;
+                syrup_needed = 0;
+                break;
+            case 0:
+                printf("Purchase cancelled.\n");
+                return;
+            default:
+                printf("Invalid choice. Purchase cancelled.\n");
+                return;
         }
-        water_needed = 30;
-        milk_needed = 70;
-        syrup_needed = 0;
-        break;
-    case 2:
-        selected_price = coffee_price_B;
-        for (int i = 0; i < 20; i++) {
-            selected_name[i] = mocha[i];
+
+        // Check if ingredients are sufficient
+        if (!checkIngredients(beans_needed, water_needed, milk_needed, syrup_needed)) {
+            printf("%s is unavailable due to temporarily insufficient ingredients.\n", selected_name);
+            return;
         }
-        water_needed = 39;
-        milk_needed = 160;
-        syrup_needed = 30;
-        break;
-    case 3:
-        selected_price = coffee_price_C;
-        for (int i = 0; i < 20; i++) {
-            selected_name[i] = espresso[i];
+
+        // Confirmation prompt
+        int confirm;
+        printf("You selected: %s (%.2f). Confirm purchase? (1 for Yes, 0 for No): ", selected_name, selected_price);
+        scanf("%d", &confirm);
+        if (confirm != 1) {
+            printf("Purchase not confirmed. Returning to menu.\n");
+            continue; // Restart purchase loop if not confirmed
         }
-        water_needed = 30;
-        milk_needed = 0;
-        syrup_needed = 0;
-        break;
-    case 0:
-        printf("Purchase cancelled.\n");
-        return;
-    default:
-        printf("Invalid choice. Purchase cancelled.\n");
-        return;
-    }
 
-    // Check if ingredients are sufficient
-    if (!checkIngredients(beans_needed, water_needed, milk_needed, syrup_needed)) {
-        printf("Unavailable due to temporarily insufficient ingredients");
-        return;
-    }
+        // Payment process
+        float amount_inserted = 0.0f;
+        float coin;
+        while (amount_inserted < selected_price) {
+            printf("Insert coin: ");
+            scanf("%f", &coin);
+            if (coin == 1.0f || coin == 0.5f)
+                amount_inserted += coin;
+            else
+                printf("Invalid coin. Please insert a valid coin.\n");
+        }
 
-    printf("You selected: %s (%.2f)\n", selected_name, selected_price);
-    printf("Please insert coins (1 or 0.5) until the price is covered.\n");
-
-    float amount_inserted = 0.0f;
-    float coin;
-    while (amount_inserted < selected_price) {
-        printf("Insert coin: ");
-        scanf("%f", &coin);
-
-        if (coin == 1.0f || coin == 0.5f)
-            amount_inserted += coin;
-        else
-            printf("Invalid coin. Try again.\n");
-    }
-
-    // Update quantities and total amount
-    if (amount_inserted >= selected_price) {
+        // Update ingredients and print purchase details
+        updateIngredients(beans_needed, water_needed, milk_needed, syrup_needed);
         total_amount += selected_price;
-        coffee_beans -= beans_needed;
-        water -= water_needed;
-        milk -= milk_needed;
-        chocolate_syrup -= syrup_needed;
-
         printf("You have purchased %s for %.2f. Thank you!\n", selected_name, selected_price);
         printf("Change to return: %.2f\n", amount_inserted - selected_price);
 
-        if (choice == 1)
-            quantity_A--;
-        else if (choice == 2)
-            quantity_B--;
-        else if (choice == 3)
-            quantity_C--;
+        // Check ingredient levels after purchase
+        checkLowIngredients();
 
-        if (quantity_A <= MIN || quantity_B <= MIN || quantity_C <= MIN)
-            printf("ALERT: Quantity of an item is less than or equal to %d!\n", MIN);
+        break;
     }
 }
+
+// Function to check if ingredients are sufficient
+int checkIngredients(int beans, int water, int milk, int syrup) {
+    return (coffee_beans >= beans && water >= water && milk >= milk && chocolate_syrup >= syrup);
+}
+
+// Function to update ingredients after a purchase
+void updateIngredients(int beans, int water, int milk, int syrup) {
+    coffee_beans -= beans;
+    water -= water;
+    milk -= milk;
+    chocolate_syrup -= syrup;
+}
+
+// Function to alert when ingredients are low
+void checkLowIngredients() {
+    if (coffee_beans <= 10)
+        printf("ALERT: Coffee beans are low.\n");
+    if (water <= 50)
+        printf("ALERT: Water is low.\n");
+    if (milk <= 50)
+        printf("ALERT: Milk is low.\n");
+    if (chocolate_syrup <= 10)
 
 void changeItemPrices() {
 
